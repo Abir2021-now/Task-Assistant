@@ -33,8 +33,10 @@ def create_task(title, priority):
         VALUES (?, ?, ?)
     """, (title, priority, 0))
 
+    task_id = cursor.lastrowid
     connection.commit()
     connection.close()
+    return task_id
 
 def get_tasks():
     connection = get_connection()
