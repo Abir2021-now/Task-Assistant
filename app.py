@@ -54,3 +54,17 @@ def get_task(task_id: int):
         "priority": task[2],
         "completed": bool(task[3])
     }
+
+@app.put("/tasks/{task_id}/complete")
+def complete_task(task_id: int):
+    updated = database.complete_task(task_id)
+
+    if updated == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+
+    return {
+        "message": "Task completed successfully"
+    }
