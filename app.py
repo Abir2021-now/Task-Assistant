@@ -23,3 +23,13 @@ def home():
 def get_tasks():
     tasks = database.get_tasks()
     return tasks
+    
+@app.post("/tasks")
+def create_task(task: TaskCreate):
+    database.create_task(
+        task.title,
+        task.priority
+    )
+    return {
+        "message": "Task created successfully"
+    }
