@@ -38,3 +38,16 @@ def create_task(task: TaskCreate):
         "completed": False
     }
 
+@app.get("/tasks/{task_id}")
+def get_task(task_id: int):
+    task = database.get_task(task_id)
+
+    if task is None:
+        return {"error": "Task not found"}
+
+    return {
+        "id": task[0],
+        "title": task[1],
+        "priority": task[2],
+        "completed": bool(task[3])
+    }
