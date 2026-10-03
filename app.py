@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Literal
 import database
@@ -43,7 +43,10 @@ def get_task(task_id: int):
     task = database.get_task(task_id)
 
     if task is None:
-        return {"error": "Task not found"}
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
 
     return {
         "id": task[0],
