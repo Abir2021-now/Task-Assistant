@@ -1,10 +1,17 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
+
 import database
 
 
 app = FastAPI()
 
 database.initialize_database()
+
+
+class TaskCreate(BaseModel):
+    title: str
+    priority: str
 
 
 @app.get("/")
