@@ -38,20 +38,22 @@ def create_task(title, priority):
     connection.close()
     return task_id
 
-def get_tasks():
+def get_task(task_id):
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute("""
         SELECT id, title, priority, completed
         FROM tasks
-    """)
+        WHERE id = ?
+    """, (task_id,))
 
-    tasks = cursor.fetchall()
+    task = cursor.fetchone()
 
     connection.close()
 
-    return tasks
+    return task
+
 
 def complete_task(task_id):
     connection = get_connection()
