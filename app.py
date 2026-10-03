@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field
+from typing import Literal
 import database
 
 
@@ -10,8 +10,8 @@ database.initialize_database()
 
 
 class TaskCreate(BaseModel):
-    title: str
-    priority: str
+    title: str = Field(min_length=1, max_length=200)
+    priority: Literal["high", "medium", "low"]
 
 
 @app.get("/")
@@ -23,7 +23,7 @@ def home():
 def get_tasks():
     tasks = database.get_tasks()
     return tasks
-    
+
 @app.post("/tasks")
 def create_task(task: TaskCreate):
     database.create_task(
