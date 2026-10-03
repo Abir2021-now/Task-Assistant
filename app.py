@@ -26,10 +26,15 @@ def get_tasks():
 
 @app.post("/tasks")
 def create_task(task: TaskCreate):
-    database.create_task(
+    task_id = database.create_task(
         task.title,
         task.priority
     )
+
     return {
-        "message": "Task created successfully"
+        "id": task_id,
+        "title": task.title,
+        "priority": task.priority,
+        "completed": False
     }
+
