@@ -2,12 +2,19 @@
 
 Task Assistant is a Python-based task manager with a FastAPI backend and a lightweight browser UI.
 
+## Live demo
+
+- Open the app: https://task-assistant-fmk5.onrender.com
+- API health check: https://task-assistant-fmk5.onrender.com/api/health
+
 ## Features
 
 - Create tasks with title and priority
 - View all tasks
 - Mark tasks complete
 - Delete tasks
+- Edit tasks
+- Search and filter tasks
 - Use the API directly or through the browser UI
 - Store data in SQLite by default
 - Run locally or in Docker
@@ -29,6 +36,7 @@ Task Assistant is a Python-based task manager with a FastAPI backend and a light
 ├── .env.example
 ├── Dockerfile
 ├── docker-compose.yml
+├── render.yaml
 ├── .gitignore
 ├── tests/
 │   └── test_app.py
@@ -61,6 +69,7 @@ docker run -p 8000:8000 task-assistant
 - `GET /api/tasks`
 - `POST /api/tasks`
 - `GET /api/tasks/{task_id}`
+- `PUT /api/tasks/{task_id}`
 - `PUT /api/tasks/{task_id}/complete`
 - `DELETE /api/tasks/{task_id}`
 
