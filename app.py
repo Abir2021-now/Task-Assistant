@@ -1,20 +1,15 @@
-import logging
-import os
 from pathlib import Path
 from typing import List, Literal
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import database
 from settings import settings
 
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("task_assistant")
 
 app = FastAPI(title="Task Assistant API", version="1.9.0")
 
@@ -26,24 +21,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def enforce_api_token(request: Request, call_next):
+    if not settings.api_token:
+        return await call_next(request)
+
+    public_paths = {"/", "/api/", "/api/health", "/api/ready", "/health", "/ready"}
+    if request.url.path in public_paths:
+        return await call_next(request)
+
+    if request.url.path.startswith("/static"):
+        return await call_next(request)
+
+    if request.url.path.startswith("/api") or request.url.path.startswith("/tasks"):
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header != f"Bearer {settings.api_token}":
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Unauthorized"},
+            )
+
+    return await call_next(request)
+
+
 static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-database.DATABASE_NAME = settings.database_name
-
 database.initialize_database()
-
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    logger.info("Request started: %s %s", request.method, request.url.path)
-    response = await call_next(request)
-    logger.info("Request finished: %s %s -> %s", request.method, request.url.path, response.status_code)
-
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    return response
 
 
 class TaskCreate(BaseModel):

@@ -1,13 +1,27 @@
 import os
 import sqlite3
 
+try:
+    import psycopg2
+except ImportError:  # pragma: no cover
+    psycopg2 = None
+
 from settings import settings
 
 
 DATABASE_NAME = os.getenv("DATABASE_NAME", settings.database_name)
+DATABASE_URL = os.getenv("DATABASE_URL") or settings.database_url
+
+
+def _is_postgres_enabled():
+    return bool(DATABASE_URL and DATABASE_URL.startswith("postgresql"))
 
 
 def get_connection():
+    if _is_postgres_enabled():
+        if psycopg2 is None:
+            raise RuntimeError("psycopg2 is required when DATABASE_URL points to PostgreSQL.")
+        return psycopg2.connect(DATABASE_URL)
     return sqlite3.connect(DATABASE_NAME, timeout=30)
 
 
@@ -67,15 +81,26 @@ def create_task(title, priority):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        INSERT INTO tasks (title, priority, completed)
-        VALUES (?, ?, ?)
-        """,
-        (cleaned_title, cleaned_priority, 0),
-    )
+    if _is_postgres_enabled():
+        cursor.execute(
+            """
+            INSERT INTO tasks (title, priority, completed)
+            VALUES (%s, %s, %s)
+            RETURNING id
+            """,
+            (cleaned_title, cleaned_priority, 0),
+        )
+        task_id = cursor.fetchone()[0]
+    else:
+        cursor.execute(
+            """
+            INSERT INTO tasks (title, priority, completed)
+            VALUES (?, ?, ?)
+            """,
+            (cleaned_title, cleaned_priority, 0),
+        )
+        task_id = cursor.lastrowid
 
-    task_id = cursor.lastrowid
     connection.commit()
     connection.close()
     return task_id
@@ -89,14 +114,24 @@ def update_task(task_id, title, priority):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        UPDATE tasks
-        SET title = ?, priority = ?
-        WHERE id = ?
-        """,
-        (cleaned_title, cleaned_priority, validated_task_id),
-    )
+    if _is_postgres_enabled():
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET title = %s, priority = %s
+            WHERE id = %s
+            """,
+            (cleaned_title, cleaned_priority, validated_task_id),
+        )
+    else:
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET title = ?, priority = ?
+            WHERE id = ?
+            """,
+            (cleaned_title, cleaned_priority, validated_task_id),
+        )
 
     updated = cursor.rowcount
     connection.commit()
@@ -108,13 +143,22 @@ def get_tasks():
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        SELECT id, title, priority, completed
-        FROM tasks
-        ORDER BY id
-        """
-    )
+    if _is_postgres_enabled():
+        cursor.execute(
+            """
+            SELECT id, title, priority, completed
+            FROM tasks
+            ORDER BY id
+            """
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT id, title, priority, completed
+            FROM tasks
+            ORDER BY id
+            """
+        )
 
     tasks = cursor.fetchall()
     connection.close()
@@ -125,14 +169,26 @@ def get_task(task_id):
     validated_task_id = _validate_task_id(task_id)
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute(
-        """
-        SELECT id, title, priority, completed
-        FROM tasks
-        WHERE id = ?
-        """,
-        (validated_task_id,),
-    )
+
+    if _is_postgres_enabled():
+        cursor.execute(
+            """
+            SELECT id, title, priority, completed
+            FROM tasks
+            WHERE id = %s
+            """,
+            (validated_task_id,),
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT id, title, priority, completed
+            FROM tasks
+            WHERE id = ?
+            """,
+            (validated_task_id,),
+        )
+
     task = cursor.fetchone()
     connection.close()
     return task
@@ -142,14 +198,26 @@ def complete_task(task_id):
     validated_task_id = _validate_task_id(task_id)
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute(
-        """
-        UPDATE tasks
-        SET completed = 1
-        WHERE id = ?
-        """,
-        (validated_task_id,),
-    )
+
+    if _is_postgres_enabled():
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET completed = 1
+            WHERE id = %s
+            """,
+            (validated_task_id,),
+        )
+    else:
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET completed = 1
+            WHERE id = ?
+            """,
+            (validated_task_id,),
+        )
+
     updated = cursor.rowcount
     connection.commit()
     connection.close()
@@ -160,13 +228,24 @@ def delete_task(task_id):
     validated_task_id = _validate_task_id(task_id)
     connection = get_connection()
     cursor = connection.cursor()
-    cursor.execute(
-        """
-        DELETE FROM tasks
-        WHERE id = ?
-        """,
-        (validated_task_id,),
-    )
+
+    if _is_postgres_enabled():
+        cursor.execute(
+            """
+            DELETE FROM tasks
+            WHERE id = %s
+            """,
+            (validated_task_id,),
+        )
+    else:
+        cursor.execute(
+            """
+            DELETE FROM tasks
+            WHERE id = ?
+            """,
+            (validated_task_id,),
+        )
+
     deleted = cursor.rowcount
     connection.commit()
     connection.close()
