@@ -6,37 +6,7 @@ DATABASE_NAME = os.getenv("DATABASE_NAME", "tasks.db")
 
 
 def get_connection():
-    return sqlite3.connect(DATABASE_NAME)
-
-
-def _validate_title(title):
-    if not isinstance(title, str):
-        raise ValueError("Task title must be a string.")
-
-    cleaned_title = title.strip()
-    if not cleaned_title:
-        raise ValueError("Task title cannot be empty.")
-
-    return cleaned_title
-
-
-def _validate_priority(priority):
-    valid_priorities = {"high", "medium", "low"}
-    if priority not in valid_priorities:
-        raise ValueError("Priority must be one of: high, medium, low.")
-    return priority
-
-
-def _validate_task_id(task_id):
-    try:
-        task_id_int = int(task_id)
-    except (TypeError, ValueError):
-        raise ValueError("Task ID must be a valid integer.")
-
-    if task_id_int <= 0:
-        raise ValueError("Task ID must be greater than zero.")
-
-    return task_id_int
+    return sqlite3.connect(DATABASE_NAME, timeout=30)
 
 
 def initialize_database():
@@ -59,8 +29,12 @@ def initialize_database():
 
 
 def create_task(title, priority):
-    cleaned_title = _validate_title(title)
-    cleaned_priority = _validate_priority(priority)
+    if not isinstance(title, str) or not title.strip():
+        raise ValueError("Task title cannot be empty.")
+
+    valid_priorities = {"high", "medium", "low"}
+    if priority not in valid_priorities:
+        raise ValueError("Priority must be one of: high, medium, low.")
 
     connection = get_connection()
     cursor = connection.cursor()
@@ -70,7 +44,7 @@ def create_task(title, priority):
         INSERT INTO tasks (title, priority, completed)
         VALUES (?, ?, ?)
         """,
-        (cleaned_title, cleaned_priority, 0),
+        (title.strip(), priority, 0),
     )
 
     task_id = cursor.lastrowid
@@ -97,7 +71,6 @@ def get_tasks():
 
 
 def get_task(task_id):
-    validated_task_id = _validate_task_id(task_id)
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -107,7 +80,7 @@ def get_task(task_id):
         FROM tasks
         WHERE id = ?
         """,
-        (validated_task_id,),
+        (task_id,),
     )
 
     task = cursor.fetchone()
@@ -116,7 +89,6 @@ def get_task(task_id):
 
 
 def complete_task(task_id):
-    validated_task_id = _validate_task_id(task_id)
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -126,7 +98,7 @@ def complete_task(task_id):
         SET completed = 1
         WHERE id = ?
         """,
-        (validated_task_id,),
+        (task_id,),
     )
 
     updated = cursor.rowcount
@@ -136,7 +108,6 @@ def complete_task(task_id):
 
 
 def delete_task(task_id):
-    validated_task_id = _validate_task_id(task_id)
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -145,7 +116,7 @@ def delete_task(task_id):
         DELETE FROM tasks
         WHERE id = ?
         """,
-        (validated_task_id,),
+        (task_id,),
     )
 
     deleted = cursor.rowcount

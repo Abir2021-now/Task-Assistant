@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List, Literal
 
@@ -6,14 +7,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 import database
-from settings import settings
 
 
-app = FastAPI(title="Task Assistant API", version="1.3.0")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger("task_assistant")
+
+app = FastAPI(title="Task Assistant API", version="1.4.0")
+
+DB_NAME = os.getenv("DATABASE_NAME", "tasks.db")
+database.DATABASE_NAME = DB_NAME
+
+database.initialize_database()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.cors_origins == ["*"] else settings.cors_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,15 +30,14 @@ app.add_middleware(
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(f"Request started: {request.method} {request.url.path}")
+    logger.info("Request started: %s %s", request.method, request.url.path)
     response = await call_next(request)
-    print(f"Request finished: {request.method} {request.url.path} -> {response.status_code}")
+    logger.info("Request finished: %s %s -> %s", request.method, request.url.path, response.status_code)
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
-
-
-database.DATABASE_NAME = settings.database_name
-
-database.initialize_database()
 
 
 class TaskCreate(BaseModel):

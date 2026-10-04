@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Step 8: Added a central settings module for environment-based configuration and cleaner deployment setup.
+- Step 9: Added structured logging and security headers for safer production behavior.
+- Step 8: Added a central settings module for environment-based configuration.
 - Step 7: Added request logging and CORS support.
 - Step 6: Added Docker and environment configuration for deployment readiness.
 - Step 5: Added database validation and safer task handling.

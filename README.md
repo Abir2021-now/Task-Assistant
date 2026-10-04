@@ -4,9 +4,10 @@ Task Assistant is a Python-based task manager for creating, listing, completing,
 
 ## Recent changes
 
-- Step 8: Added a central settings module to make runtime configuration environment-based and cleaner for deployment.
+- Step 9: Added structured logging and security headers for safer production behavior.
+- Step 8: Added centralized runtime configuration for deployment readiness.
 - Step 7: Added request logging and CORS support.
-- Step 6: Added Docker and environment-driven deployment support.
+- Step 6: Added Docker and environment-based deployment support.
 - Step 5: Added database validation and safer task handling.
 - Step 4: Added health and readiness endpoints.
 - Step 3: Added stronger API validation and delete support.
@@ -20,15 +21,16 @@ Task Assistant is a Python-based task manager for creating, listing, completing,
 - Delete tasks
 - Run as a CLI or API
 - Store data in SQLite
-- Environment-based configuration for host, port, and CORS
+- Environment-based configuration
+- Request logging and basic security headers
 
 ## Project structure
 
 ```text
 .
 ├── app.py
-├── settings.py
 ├── database.py
+├── settings.py
 ├── main.py
 ├── models.py
 ├── README.md
@@ -82,3 +84,12 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ```bash
 pytest
 ```
+
+## Production hardening notes
+
+The app now includes:
+
+- structured request logging
+- security headers for basic hardening
+- validated task inputs
+- environment-driven configuration
