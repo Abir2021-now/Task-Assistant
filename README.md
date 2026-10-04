@@ -101,3 +101,10 @@ curl -X POST http://127.0.0.1:8000/tasks \
 
 - The app creates the SQLite database automatically if it does not exist.
 - For local development, the repository now includes a `requirements.txt` and project hygiene defaults for a cleaner production-readiness workflow.
+
+## Testing
+
+Run the test suite with:
+
+```bash
+pytest
