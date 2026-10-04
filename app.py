@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 import database
+from settings import settings
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -14,14 +15,11 @@ logger = logging.getLogger("task_assistant")
 
 app = FastAPI(title="Task Assistant API", version="1.4.0")
 
-DB_NAME = os.getenv("DATABASE_NAME", "tasks.db")
-database.DATABASE_NAME = DB_NAME
-
-database.initialize_database()
+database.DATABASE_NAME = settings.database_name
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"] if settings.cors_origins == ["*"] else settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,6 +36,9 @@ async def log_requests(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
+
+
+database.initialize_database()
 
 
 class TaskCreate(BaseModel):

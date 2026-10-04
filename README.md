@@ -1,28 +1,26 @@
 # Task Assistant
 
-Task Assistant is a Python-based task manager for creating, listing, completing, and deleting tasks. The project includes an interactive command-line interface and a FastAPI API backed by SQLite.
+Task Assistant is a Python-based task manager for creating, listing, completing, and deleting tasks. The project includes a command-line interface and a FastAPI API backed by SQLite.
 
 ## Recent changes
 
-- Step 9: Added structured logging and security headers for safer production behavior.
-- Step 8: Added centralized runtime configuration for deployment readiness.
-- Step 7: Added request logging and CORS support.
-- Step 6: Added Docker and environment-based deployment support.
-- Step 5: Added database validation and safer task handling.
-- Step 4: Added health and readiness endpoints.
-- Step 3: Added stronger API validation and delete support.
-- Step 2: Added automated tests and CI.
-- Step 1: Fixed the missing `get_tasks()` bug and added project setup files.
+- Fixed runtime issues in the database and API layer
+- Added task listing support required by the CLI and API
+- Added validation for task titles, priorities, and IDs
+- Added health and readiness endpoints
+- Added request logging and security headers
+- Added Docker and environment-based configuration
+- Added tests and GitHub Actions CI workflow
 
 ## Features
 
-- Create and manage tasks with titles and priorities
-- View and complete tasks
+- Create tasks with a title and priority (`high`, `medium`, or `low`)
+- View all saved tasks
+- Mark tasks as complete
 - Delete tasks
-- Run as a CLI or API
-- Store data in SQLite
-- Environment-based configuration
-- Request logging and basic security headers
+- Access task data over HTTP
+- Persist task data with SQLite
+- Configure host, port, and CORS via environment variables
 
 ## Project structure
 
@@ -47,12 +45,19 @@ Task Assistant is a Python-based task manager for creating, listing, completing,
 │       └── ci.yml
 ├── tests/
 │   └── test_app.py
-└── tasks.db
+├── tasks.db
+└── __pycache__/
 ```
 
-## Config
+## Requirements
 
-Use environment variables to control runtime behavior:
+```bash
+pip install -r requirements.txt
+```
+
+## Configuration
+
+Set environment variables as needed:
 
 ```bash
 DATABASE_NAME=tasks.db
@@ -61,23 +66,68 @@ APP_PORT=8000
 CORS_ORIGINS=http://localhost:3000
 ```
 
-## Run the CLI
+## Run the CLI app
 
 ```bash
 python main.py
 ```
 
-## Run the API
+## Run the API server
 
 ```bash
 uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-## Health endpoints
+Then open:
 
-- `/health`
-- `/ready`
-- `/docs`
+- `http://127.0.0.1:8000/`
+- `http://127.0.0.1:8000/docs`
+- `http://127.0.0.1:8000/health`
+- `http://127.0.0.1:8000/ready`
+
+## API endpoints
+
+### `GET /`
+Returns a simple service message.
+
+### `GET /health`
+Returns app health status.
+
+### `GET /ready`
+Returns readiness status.
+
+### `GET /tasks`
+Returns all tasks.
+
+### `POST /tasks`
+Creates a new task.
+
+Example payload:
+
+```json
+{
+  "title": "Write project documentation",
+  "priority": "high"
+}
+```
+
+### `GET /tasks/{task_id}`
+Returns one task by ID.
+
+### `PUT /tasks/{task_id}/complete`
+Marks a task as complete.
+
+### `DELETE /tasks/{task_id}`
+Deletes a task.
+
+## Example usage
+
+```bash
+curl http://127.0.0.1:8000/tasks
+curl -X POST http://127.0.0.1:8000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Plan sprint work","priority":"high"}'
+```
 
 ## Testing
 
@@ -85,11 +135,14 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 pytest
 ```
 
-## Production hardening notes
+## Docker
 
-The app now includes:
+```bash
+docker build -t task-assistant .
+docker run -p 8000:8000 task-assistant
+```
 
-- structured request logging
-- security headers for basic hardening
-- validated task inputs
-- environment-driven configuration
+## Notes
+
+- The app creates the SQLite database automatically when started.
+- The repository now includes a stronger production-ready baseline with validation, config, and monitoring.
