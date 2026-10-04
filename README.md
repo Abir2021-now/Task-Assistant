@@ -4,10 +4,11 @@ Task Assistant is a Python-based task manager for creating, listing, completing,
 
 ## Recent changes
 
-- PostgreSQL-ready architecture added with SQLAlchemy and Alembic migration support.
-- Optional API authentication and rate limiting added for secure production use.
+- Added PostgreSQL-ready runtime support with SQLAlchemy and Alembic.
+- Added optional API authentication and in-memory rate limiting.
 - Added request logging, health checks, and environment-driven runtime config.
 - Added Docker and CI support.
+- Added a Postgres-backed local Docker Compose setup for realistic deployment testing.
 
 ## Features
 
@@ -67,10 +68,10 @@ RATE_LIMIT=60
 RATE_LIMIT_WINDOW_SECONDS=60
 ```
 
-For PostgreSQL:
+For PostgreSQL in Docker Compose, use:
 
 ```bash
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/taskassistant
+DATABASE_URL=postgresql://postgres:postgres@db:5432/taskassistant
 ```
 
 If `API_TOKEN` is set, requests must include:
@@ -85,15 +86,32 @@ Authorization: Bearer your-secret-token
 python main.py
 ```
 
-## Run the API server
+## Run the API server locally
 
 ```bash
 uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+## Run with Docker Compose
+
+This project includes a PostgreSQL-backed local stack for realistic testing:
+
+```bash
+docker compose up --build
+```
+
+The app will be available at:
+
+- `http://localhost:8000/`
+- `http://localhost:8000/docs`
+
+The database is available at:
+
+- `localhost:5432`
+
 ## Alembic migrations
 
-Create the migration database and run upgrades:
+Create the schema and run upgrades:
 
 ```bash
 alembic upgrade head
