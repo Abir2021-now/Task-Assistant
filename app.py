@@ -1,6 +1,9 @@
 import logging
 import os
-from typing import List, Literal
+import sqlite3
+import time
+from collections import defaultdict, deque
+from typing import Deque, Dict, List, Literal
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +16,11 @@ from settings import settings
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("task_assistant")
 
-app = FastAPI(title="Task Assistant API", version="1.4.0")
+API_TOKEN = os.getenv("API_TOKEN")
+RATE_LIMIT = int(os.getenv("RATE_LIMIT", "60"))
+RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+
+app = FastAPI(title="Task Assistant API", version="1.5.0")
 
 database.DATABASE_NAME = settings.database_name
 
@@ -25,9 +32,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+request_times: Dict[str, Deque[float]] = defaultdict(deque)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    window = request_times[client_ip]
+    window.append(now)
+
+    while window and now - window[0] > RATE_LIMIT_WINDOW_SECONDS:
+        window.popleft()
+
+    if len(window) > RATE_LIMIT:
+        logger.warning("Rate limit exceeded for %s", client_ip)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests",
+        )
+
+    if API_TOKEN:
+        auth_header = request.headers.get("Authorization", "")
+        expected = f"Bearer {API_TOKEN}"
+        if auth_header != expected:
+            logger.warning("Unauthorized request from %s", client_ip)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unauthorized",
+            )
+
     logger.info("Request started: %s %s", request.method, request.url.path)
     response = await call_next(request)
     logger.info("Request finished: %s %s -> %s", request.method, request.url.path, response.status_code)
