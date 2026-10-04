@@ -125,7 +125,6 @@ def get_task(task_id):
     validated_task_id = _validate_task_id(task_id)
     connection = get_connection()
     cursor = connection.cursor()
-
     cursor.execute(
         """
         SELECT id, title, priority, completed
@@ -134,7 +133,6 @@ def get_task(task_id):
         """,
         (validated_task_id,),
     )
-
     task = cursor.fetchone()
     connection.close()
     return task
@@ -144,7 +142,6 @@ def complete_task(task_id):
     validated_task_id = _validate_task_id(task_id)
     connection = get_connection()
     cursor = connection.cursor()
-
     cursor.execute(
         """
         UPDATE tasks
@@ -153,7 +150,6 @@ def complete_task(task_id):
         """,
         (validated_task_id,),
     )
-
     updated = cursor.rowcount
     connection.commit()
     connection.close()
@@ -164,7 +160,6 @@ def delete_task(task_id):
     validated_task_id = _validate_task_id(task_id)
     connection = get_connection()
     cursor = connection.cursor()
-
     cursor.execute(
         """
         DELETE FROM tasks
@@ -172,7 +167,6 @@ def delete_task(task_id):
         """,
         (validated_task_id,),
     )
-
     deleted = cursor.rowcount
     connection.commit()
     connection.close()
