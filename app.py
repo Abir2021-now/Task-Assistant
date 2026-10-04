@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal, List
+from typing import List, Literal
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +11,7 @@ import database
 from settings import settings
 
 
-app = FastAPI(title="Task Assistant API", version="1.8.0")
+app = FastAPI(title="Task Assistant API", version="1.9.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,6 +28,11 @@ database.initialize_database()
 
 
 class TaskCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    priority: Literal["high", "medium", "low"]
+
+
+class TaskUpdate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     priority: Literal["high", "medium", "low"]
 
@@ -95,6 +100,19 @@ def get_task_api(task_id: int):
     if task is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     return _task_to_response(task)
+
+
+@app.put("/api/tasks/{task_id}", response_model=TaskResponse)
+def update_task_api(task_id: int, task: TaskUpdate):
+    updated = database.update_task(task_id, task.title, task.priority)
+    if updated == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+    saved_task = database.get_task(task_id)
+    if saved_task is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+    return _task_to_response(saved_task)
 
 
 @app.put("/api/tasks/{task_id}/complete", response_model=TaskMessageResponse)

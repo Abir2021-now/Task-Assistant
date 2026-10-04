@@ -81,6 +81,29 @@ def create_task(title, priority):
     return task_id
 
 
+def update_task(task_id, title, priority):
+    validated_task_id = _validate_task_id(task_id)
+    cleaned_title = _validate_title(title)
+    cleaned_priority = _validate_priority(priority)
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        UPDATE tasks
+        SET title = ?, priority = ?
+        WHERE id = ?
+        """,
+        (cleaned_title, cleaned_priority, validated_task_id),
+    )
+
+    updated = cursor.rowcount
+    connection.commit()
+    connection.close()
+    return updated
+
+
 def get_tasks():
     connection = get_connection()
     cursor = connection.cursor()

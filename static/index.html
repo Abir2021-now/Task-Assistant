@@ -7,14 +7,18 @@
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <div class="container">
-      <header>
-        <h1>Task Assistant</h1>
+    <main class="container">
+      <header class="header">
+        <div>
+          <p class="eyebrow">Productivity</p>
+          <h1>Task Assistant</h1>
+        </div>
+        <div id="summary" class="summary" aria-live="polite"></div>
       </header>
 
       <form id="task-form" class="task-form">
-        <input id="title" type="text" placeholder="Task title" required />
-        <select id="priority">
+        <input id="title" type="text" placeholder="Add a new task" aria-label="Task title" required />
+        <select id="priority" aria-label="Task priority">
           <option value="high">High</option>
           <option value="medium" selected>Medium</option>
           <option value="low">Low</option>
@@ -22,10 +26,23 @@
         <button type="submit">Add task</button>
       </form>
 
-      <div id="status" class="status" aria-live="polite"></div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <input id="search" type="search" placeholder="Search tasks" aria-label="Search tasks" />
+        </div>
 
+        <div id="filter-controls" class="filter-controls" aria-label="Filter tasks">
+          <button type="button" class="filter-btn active" data-filter="all">All</button>
+          <button type="button" class="filter-btn" data-filter="open">Open</button>
+          <button type="button" class="filter-btn" data-filter="completed">Completed</button>
+        </div>
+
+        <button id="clear-completed" type="button" class="secondary-btn">Clear completed</button>
+      </div>
+
+      <div id="status" class="status" aria-live="polite"></div>
       <ul id="task-list" class="task-list"></ul>
-    </div>
+    </main>
 
     <script src="/static/app.js"></script>
   </body>
