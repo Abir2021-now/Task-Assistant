@@ -7,7 +7,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from settings import settings
 
 
-DATABASE_URL = os.getenv("DATABASE_URL", settings.database_url)
+DATABASE_URL = os.getenv("DATABASE_URL") or settings.database_url
 
 Base = declarative_base()
 
@@ -22,7 +22,7 @@ class TaskORM(Base):
 
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

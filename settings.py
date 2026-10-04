@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class Settings:
-    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./tasks.db")
+    database_url: str = os.getenv("DATABASE_URL") or "sqlite:///./tasks.db"
     database_name: str = os.getenv("DATABASE_NAME", "tasks.db")
     host: str = os.getenv("APP_HOST", "0.0.0.0")
     port: int = int(os.getenv("APP_PORT", "8000"))

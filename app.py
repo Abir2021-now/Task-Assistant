@@ -21,8 +21,6 @@ RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
 
 app = FastAPI(title="Task Assistant API", version="1.6.0")
 
-database.DATABASE_URL = settings.database_url
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if settings.cors_origins == ["*"] else settings.cors_origins,
