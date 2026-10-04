@@ -1,6 +1,5 @@
 import logging
 import os
-import sqlite3
 import time
 from collections import defaultdict, deque
 from typing import Deque, Dict, List, Literal
@@ -20,9 +19,9 @@ API_TOKEN = os.getenv("API_TOKEN")
 RATE_LIMIT = int(os.getenv("RATE_LIMIT", "60"))
 RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
 
-app = FastAPI(title="Task Assistant API", version="1.5.0")
+app = FastAPI(title="Task Assistant API", version="1.6.0")
 
-database.DATABASE_NAME = settings.database_name
+database.DATABASE_URL = settings.database_url
 
 app.add_middleware(
     CORSMiddleware,
