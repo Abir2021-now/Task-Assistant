@@ -11,6 +11,13 @@ Task Assistant is a Python-based task manager for creating, listing, completing,
 - Query the API over HTTP
 - Store data persistently in SQLite
 
+```markdown
+## Unreleased
+
+- Step 2: Added automated tests and a GitHub Actions CI workflow for the project.
+- Step 1: Added dependency management (`requirements.txt`), `.gitignore`, and `LICENSE`.
+- Step 1: Fixed the missing `database.get_tasks()` bug and hardened CLI ID validation.
+
 ## Project structure
 
 ```text
