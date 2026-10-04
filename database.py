@@ -1,36 +1,17 @@
 import os
-from typing import Optional
-
-from sqlalchemy import Boolean, Column, Integer, String, create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+import sqlite3
 
 from settings import settings
 
 
-DATABASE_URL = os.getenv("DATABASE_URL") or settings.database_url
-
-Base = declarative_base()
+DATABASE_NAME = os.getenv("DATABASE_NAME", settings.database_name)
 
 
-class TaskORM(Base):
-    __tablename__ = "tasks"
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    title = Column(String(200), nullable=False)
-    priority = Column(String(20), nullable=False)
-    completed = Column(Boolean, nullable=False, default=False)
+def get_connection():
+    return sqlite3.connect(DATABASE_NAME, timeout=30)
 
 
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-def initialize_database():
-    Base.metadata.create_all(bind=engine)
-
-
-def _validate_title(title: str) -> str:
+def _validate_title(title):
     if not isinstance(title, str):
         raise ValueError("Task title must be a string.")
 
@@ -41,69 +22,135 @@ def _validate_title(title: str) -> str:
     return cleaned_title
 
 
-def _validate_priority(priority: str) -> str:
+def _validate_priority(priority):
     valid_priorities = {"high", "medium", "low"}
     if priority not in valid_priorities:
         raise ValueError("Priority must be one of: high, medium, low.")
     return priority
 
 
-def create_task(title: str, priority: str) -> int:
+def _validate_task_id(task_id):
+    try:
+        task_id_int = int(task_id)
+    except (TypeError, ValueError):
+        raise ValueError("Task ID must be a valid integer.")
+
+    if task_id_int <= 0:
+        raise ValueError("Task ID must be greater than zero.")
+
+    return task_id_int
+
+
+def initialize_database():
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            priority TEXT NOT NULL,
+            completed INTEGER NOT NULL
+        )
+        """
+    )
+
+    connection.commit()
+    connection.close()
+
+
+def create_task(title, priority):
     cleaned_title = _validate_title(title)
     cleaned_priority = _validate_priority(priority)
 
-    session = SessionLocal()
-    try:
-        task = TaskORM(title=cleaned_title, priority=cleaned_priority, completed=False)
-        session.add(task)
-        session.commit()
-        session.refresh(task)
-        return task.id
-    finally:
-        session.close()
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO tasks (title, priority, completed)
+        VALUES (?, ?, ?)
+        """,
+        (cleaned_title, cleaned_priority, 0),
+    )
+
+    task_id = cursor.lastrowid
+    connection.commit()
+    connection.close()
+    return task_id
 
 
-def get_tasks() -> list[tuple[int, str, str, int]]:
-    session = SessionLocal()
-    try:
-        tasks = session.query(TaskORM).order_by(TaskORM.id).all()
-        return [(task.id, task.title, task.priority, int(task.completed)) for task in tasks]
-    finally:
-        session.close()
+def get_tasks():
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, title, priority, completed
+        FROM tasks
+        ORDER BY id
+        """
+    )
+
+    tasks = cursor.fetchall()
+    connection.close()
+    return tasks
 
 
-def get_task(task_id: int) -> Optional[tuple[int, str, str, int]]:
-    session = SessionLocal()
-    try:
-        task = session.query(TaskORM).filter(TaskORM.id == task_id).first()
-        if task is None:
-            return None
-        return (task.id, task.title, task.priority, int(task.completed))
-    finally:
-        session.close()
+def get_task(task_id):
+    validated_task_id = _validate_task_id(task_id)
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, title, priority, completed
+        FROM tasks
+        WHERE id = ?
+        """,
+        (validated_task_id,),
+    )
+
+    task = cursor.fetchone()
+    connection.close()
+    return task
 
 
-def complete_task(task_id: int) -> int:
-    session = SessionLocal()
-    try:
-        task = session.query(TaskORM).filter(TaskORM.id == task_id).first()
-        if task is None:
-            return 0
-        task.completed = True
-        session.commit()
-        return 1
-    finally:
-        session.close()
+def complete_task(task_id):
+    validated_task_id = _validate_task_id(task_id)
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        UPDATE tasks
+        SET completed = 1
+        WHERE id = ?
+        """,
+        (validated_task_id,),
+    )
+
+    updated = cursor.rowcount
+    connection.commit()
+    connection.close()
+    return updated
 
 
-def delete_task(task_id: int) -> int:
-    session = SessionLocal()
-    try:
-        task = session.query(TaskORM).filter(TaskORM.id == task_id).first()
-        if task is None:
-            return 0
-        session.delete(task)
-        session.commit()
-        return 1
-    finally:
-        session.close()
+def delete_task(task_id):
+    validated_task_id = _validate_task_id(task_id)
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM tasks
+        WHERE id = ?
+        """,
+        (validated_task_id,),
+    )
+
+    deleted = cursor.rowcount
+    connection.commit()
+    connection.close()
+    return deleted

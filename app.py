@@ -1,25 +1,17 @@
-import logging
-import os
-import time
-from collections import defaultdict, deque
-from typing import Deque, Dict, List, Literal
+from pathlib import Path
+from typing import Literal, List
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import database
 from settings import settings
 
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("task_assistant")
-
-API_TOKEN = os.getenv("API_TOKEN")
-RATE_LIMIT = int(os.getenv("RATE_LIMIT", "60"))
-RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
-
-app = FastAPI(title="Task Assistant API", version="1.6.0")
+app = FastAPI(title="Task Assistant API", version="1.8.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,45 +21,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-request_times: Dict[str, Deque[float]] = defaultdict(deque)
-
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    client_ip = request.client.host if request.client else "unknown"
-    now = time.time()
-    window = request_times[client_ip]
-    window.append(now)
-
-    while window and now - window[0] > RATE_LIMIT_WINDOW_SECONDS:
-        window.popleft()
-
-    if len(window) > RATE_LIMIT:
-        logger.warning("Rate limit exceeded for %s", client_ip)
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many requests",
-        )
-
-    if API_TOKEN:
-        auth_header = request.headers.get("Authorization", "")
-        expected = f"Bearer {API_TOKEN}"
-        if auth_header != expected:
-            logger.warning("Unauthorized request from %s", client_ip)
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Unauthorized",
-            )
-
-    logger.info("Request started: %s %s", request.method, request.url.path)
-    response = await call_next(request)
-    logger.info("Request finished: %s %s -> %s", request.method, request.url.path, response.status_code)
-
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    return response
-
+static_dir = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 database.initialize_database()
 
@@ -88,9 +43,74 @@ class TaskMessageResponse(BaseModel):
     message: str
 
 
-@app.get("/", response_model=dict)
-def home():
+def _task_to_response(task):
+    return {
+        "id": task[0],
+        "title": task[1],
+        "priority": task[2],
+        "completed": bool(task[3]),
+    }
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse(static_dir / "index.html")
+
+
+@app.get("/api/", response_model=dict)
+def home_api():
     return {"message": "Task Assistant API is running!"}
+
+
+@app.get("/api/health")
+def health_check_api():
+    return {"status": "ok"}
+
+
+@app.get("/api/ready")
+def readiness_check_api():
+    return {"status": "ready"}
+
+
+@app.get("/api/tasks", response_model=List[TaskResponse])
+def get_tasks_api():
+    tasks = database.get_tasks()
+    return [_task_to_response(task) for task in tasks]
+
+
+@app.post("/api/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+def create_task_api(task: TaskCreate):
+    task_id = database.create_task(task.title, task.priority)
+    return {
+        "id": task_id,
+        "title": task.title,
+        "priority": task.priority,
+        "completed": False,
+    }
+
+
+@app.get("/api/tasks/{task_id}", response_model=TaskResponse)
+def get_task_api(task_id: int):
+    task = database.get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    return _task_to_response(task)
+
+
+@app.put("/api/tasks/{task_id}/complete", response_model=TaskMessageResponse)
+def complete_task_api(task_id: int):
+    updated = database.complete_task(task_id)
+    if updated == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    return {"message": "Task completed successfully"}
+
+
+@app.delete("/api/tasks/{task_id}", response_model=TaskMessageResponse)
+def delete_task_api(task_id: int):
+    deleted = database.delete_task(task_id)
+    if deleted == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    return {"message": "Task deleted successfully"}
 
 
 @app.get("/health")
@@ -106,15 +126,7 @@ def readiness_check():
 @app.get("/tasks", response_model=List[TaskResponse])
 def get_tasks():
     tasks = database.get_tasks()
-    return [
-        {
-            "id": task[0],
-            "title": task[1],
-            "priority": task[2],
-            "completed": bool(task[3]),
-        }
-        for task in tasks
-    ]
+    return [_task_to_response(task) for task in tasks]
 
 
 @app.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
@@ -133,12 +145,7 @@ def get_task(task_id: int):
     task = database.get_task(task_id)
     if task is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
-    return {
-        "id": task[0],
-        "title": task[1],
-        "priority": task[2],
-        "completed": bool(task[3]),
-    }
+    return _task_to_response(task)
 
 
 @app.put("/tasks/{task_id}/complete", response_model=TaskMessageResponse)
