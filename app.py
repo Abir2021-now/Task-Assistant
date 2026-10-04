@@ -1,12 +1,67 @@
-from typing import Literal, List
+import logging
+import os
+import sqlite3
+from typing import List, Literal
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 import database
 
 
-app = FastAPI(title="Task Assistant API", version="1.1.0")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("task_assistant")
+
+app = FastAPI(title="Task Assistant API", version="1.2.0")
+
+allowed_origins = os.getenv("CORS_ORIGINS", "*").split(",")
+allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+if not allowed_origins:
+    allowed_origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if allowed_origins == ["*"] else allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info("Request started: %s %s", request.method, request.url.path)
+    try:
+        response = await call_next(request)
+        logger.info(
+            "Request finished: %s %s -> %s",
+            request.method,
+            request.url.path,
+            response.status_code,
+        )
+        return response
+    except Exception:
+        logger.exception("Request failed: %s %s", request.method, request.url.path)
+        raise
+
+
+@app.exception_handler(ValueError)
+async def value_error_handler(_, exc: ValueError):
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@app.exception_handler(sqlite3.DatabaseError)
+async def database_error_handler(_, exc: sqlite3.DatabaseError):
+    logger.exception("Database error encountered: %s", exc)
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Database error",
+    )
+
 
 database.initialize_database()
 

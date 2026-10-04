@@ -4,6 +4,7 @@ Task Assistant is a Python-based task manager for creating, listing, completing,
 
 ## Recent changes
 
+- Step 7: Added request logging and CORS support for safer production usage.
 - Step 6: Added environment-based configuration and container support for easier deployment.
 - Step 5: Added database validation for task titles, priorities, and IDs.
 - Step 4: Added health and readiness endpoints to improve API operational monitoring.
@@ -20,6 +21,7 @@ Task Assistant is a Python-based task manager for creating, listing, completing,
 - Access the data through a HTTP API
 - Persist data using SQLite
 - Run locally or in Docker
+- Log requests and support browser-based clients via CORS
 
 ## Project structure
 
@@ -67,6 +69,7 @@ Example values:
 DATABASE_NAME=tasks.db
 APP_HOST=0.0.0.0
 APP_PORT=8000
+CORS_ORIGINS=http://localhost:3000
 ```
 
 ## Run the CLI app
@@ -158,4 +161,4 @@ This repository includes a GitHub Actions workflow that runs the test suite auto
 ## Notes
 
 - The database file is created automatically when the app starts.
-- The project is being hardened step by step toward a more production-ready structure.
+- Logging and CORS are enabled to support operational visibility and browser-based clients.
