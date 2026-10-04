@@ -58,7 +58,12 @@ def mark_complete():
 
 def remove_task():
     task_id = input("Enter task ID to delete: ")
-    deleted = database.delete_task(task_id)
+
+    if not task_id.isdigit():
+        print("Task ID must be a number.")
+        return
+
+    deleted = database.delete_task(int(task_id))
 
     if deleted:
         print("Task deleted!")

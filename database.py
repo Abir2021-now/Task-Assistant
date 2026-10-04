@@ -24,6 +24,7 @@ def initialize_database():
     connection.commit()
     connection.close()
 
+
 def create_task(title, priority):
     connection = get_connection()
     cursor = connection.cursor()
@@ -37,6 +38,22 @@ def create_task(title, priority):
     connection.commit()
     connection.close()
     return task_id
+
+
+def get_tasks():
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT id, title, priority, completed
+        FROM tasks
+        ORDER BY id
+    """)
+
+    tasks = cursor.fetchall()
+    connection.close()
+    return tasks
+
 
 def get_task(task_id):
     connection = get_connection()
@@ -88,4 +105,3 @@ def delete_task(task_id):
     connection.close()
 
     return deleted
-
