@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 import database
 
 
-app = FastAPI(title="Task Assistant API")
+app = FastAPI(title="Task Assistant API", version="1.1.0")
 
 database.initialize_database()
 
@@ -30,6 +30,16 @@ class TaskMessageResponse(BaseModel):
 @app.get("/", response_model=dict)
 def home():
     return {"message": "Task Assistant API is running!"}
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+def readiness_check():
+    return {"status": "ready"}
 
 
 @app.get("/tasks", response_model=List[TaskResponse])
