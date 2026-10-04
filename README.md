@@ -1,40 +1,72 @@
 # Task Assistant
 
-Task Assistant is a Python-based task manager designed for simple local task tracking. The project includes both a CLI and a FastAPI API, and it stores data in a SQLite database.
+Task Assistant is a Python-based task manager for creating, listing, completing, and deleting tasks. The project includes both an interactive command-line interface and a lightweight FastAPI API backed by SQLite.
 
 ## Recent changes
 
-This update is part of Step 1 of the production-readiness work.
-
-- Fixed the missing `database.get_tasks()` function required by the CLI and API
-- Added a proper dependency list for reproducible setup
-- Added project hygiene files (`.gitignore`, `LICENSE`)
-- Improved the CLI delete flow to validate task IDs before deletion
-- Refreshed the documentation to reflect the actual app behavior
+- Step 6: Added environment-based configuration and container support for easier deployment.
+- Step 5: Added database validation for task titles, priorities, and IDs.
+- Step 4: Added health and readiness endpoints to improve API operational monitoring.
+- Step 3: Added stronger response models, validation, and a delete endpoint.
+- Step 2: Added automated tests and CI.
+- Step 1: Fixed the missing `database.get_tasks()` bug and added dependency management and project hygiene files.
 
 ## Features
 
-- Add tasks with a title and priority (`high`, `medium`, `low`)
-- View all tasks
+- Create tasks with a title and priority (`high`, `medium`, or `low`)
+- View all saved tasks
 - Mark tasks as complete
 - Delete tasks
-- Access task data through a REST API
+- Access the data through a HTTP API
 - Persist data using SQLite
+- Run locally or in Docker
 
 ## Project structure
 
-- `main.py` — interactive CLI task manager
-- `app.py` — FastAPI API endpoints
-- `database.py` — database setup and CRUD logic
-- `models.py` — Task model
-- `tasks.db` — SQLite database created automatically when the app runs
+```text
+.
+├── app.py
+├── database.py
+├── main.py
+├── models.py
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── LICENSE
+├── CHANGELOG.md
+├── .env.example
+├── Dockerfile
+├── docker-compose.yml
+├── .dockerignore
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── tests/
+│   └── test_app.py
+├── tasks.db
+└── __pycache__/
+```
 
 ## Requirements
 
-Install the Python dependencies:
-
 ```bash
 pip install -r requirements.txt
+```
+
+## Environment configuration
+
+Create a `.env` file from `.env.example` if you want to override the default database path or host/port settings:
+
+```bash
+cp .env.example .env
+```
+
+Example values:
+
+```env
+DATABASE_NAME=tasks.db
+APP_HOST=0.0.0.0
+APP_PORT=8000
 ```
 
 ## Run the CLI app
@@ -43,29 +75,42 @@ pip install -r requirements.txt
 python main.py
 ```
 
-The CLI presents a menu with these options:
-
-1. Add task
-2. View tasks
-3. Complete task
-4. Delete task
-5. Exit
-
-## Run the API server
+## Run the API server locally
 
 ```bash
-uvicorn app:app --reload
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 Then open:
 
 - `http://127.0.0.1:8000/`
 - `http://127.0.0.1:8000/docs`
+- `http://127.0.0.1:8000/health`
+- `http://127.0.0.1:8000/ready`
+
+## Run with Docker
+
+```bash
+docker build -t task-assistant .
+docker run -p 8000:8000 --env-file .env task-assistant
+```
+
+Or use Docker Compose:
+
+```bash
+docker-compose up --build
+```
 
 ## API endpoints
 
 ### `GET /`
 Returns a simple health message.
+
+### `GET /health`
+Returns app health.
+
+### `GET /ready`
+Returns readiness status.
 
 ### `GET /tasks`
 Returns all tasks.
@@ -88,6 +133,9 @@ Returns a specific task by ID.
 ### `PUT /tasks/{task_id}/complete`
 Marks a task as completed.
 
+### `DELETE /tasks/{task_id}`
+Deletes a task by ID.
+
 ## Example usage
 
 ```bash
@@ -97,14 +145,17 @@ curl -X POST http://127.0.0.1:8000/tasks \
   -d '{"title":"Buy groceries","priority":"medium"}'
 ```
 
-## Notes
-
-- The app creates the SQLite database automatically if it does not exist.
-- For local development, the repository now includes a `requirements.txt` and project hygiene defaults for a cleaner production-readiness workflow.
-
 ## Testing
-
-Run the test suite with:
 
 ```bash
 pytest
+```
+
+## CI
+
+This repository includes a GitHub Actions workflow that runs the test suite automatically on pushes and pull requests.
+
+## Notes
+
+- The database file is created automatically when the app starts.
+- The project is being hardened step by step toward a more production-ready structure.

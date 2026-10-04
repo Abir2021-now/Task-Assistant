@@ -1,7 +1,8 @@
+import os
 import sqlite3
 
 
-DATABASE_NAME = "tasks.db"
+DATABASE_NAME = os.getenv("DATABASE_NAME", "tasks.db")
 
 
 def get_connection():
